@@ -141,11 +141,8 @@ def main():
         # Paramètre temps (UI requested)
         periode_voyage = st.radio("Periode temporelle", ["Journee", "Nuit"], index=1 if is_nuit else 0)
         
-        # Paramètre congestion (UI requested)
-        congestion_active = st.checkbox("Simuler une congestion routiere", value=is_pointe == 1)
-        
-        # Mapping interne
-        trafic_val = 2 if congestion_active else 1
+        # Mapping interne automatique basé sur l'heure de pointe
+        trafic_val = 2 if is_pointe else 1
 
     with tab2:
         st.markdown("<div class='section-title'>Fiches des Variables (Features)</div>", unsafe_allow_html=True)
