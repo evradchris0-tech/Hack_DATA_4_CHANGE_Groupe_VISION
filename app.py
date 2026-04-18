@@ -113,8 +113,14 @@ def get_osrm_route(lat1, lon1, lat2, lon2):
     return None, None, None
 
 def main():
-    st.markdown("<div class='dashboard-title'>SOSSOTRAJETPRO</div>", unsafe_allow_html=True)
-    st.markdown("<div class='dashboard-subtitle'>Systeme de tarification predictif par Machine Learning</div>", unsafe_allow_html=True)
+    # --- HEADER AVEC QR CODE ---
+    header_col1, header_col2 = st.columns([0.85, 0.15])
+    with header_col1:
+        st.markdown("<div class='dashboard-title'>SOSSOTRAJETPRO</div>", unsafe_allow_html=True)
+        st.markdown("<div class='dashboard-subtitle'>L'Intelligence Artificielle au Service du Transport Camerounais</div>", unsafe_allow_html=True)
+    with header_col2:
+        qr_url = "https://hackdata4changegroupevision-hzcgpdxdmf4s2om7urneou.streamlit.app/"
+        st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={qr_url}", width=100, caption="Scanner l'App")
 
     tab1, tab2 = st.tabs(["SIMULATEUR", "MATRICE DE L'IA"])
     
@@ -246,34 +252,32 @@ def main():
             st.markdown("<div class='section-title'>Trace du Trajet</div>", unsafe_allow_html=True)
             m = folium.Map(location=[4.0511, 9.7679] if ville == "Douala" else [3.8480, 11.5021], zoom_start=13, tiles="CartoDB positron")
             
-            # --- AJOUT DES POINTS D'INTERET (REPERES URBAINS) ---
+            # --- AJOUT DES POINTS D'INTERET ET ARRÊTS OFFICIELS ---
             points_interet = {
                 "Douala": [
-                    {"name": "Ndokoti", "coord": [4.0494, 9.7494]},
-                    {"name": "Rond-point Deido", "coord": [4.0624, 9.7041]},
-                    {"name": "Bonanjo City Hall", "coord": [4.0435, 9.6888]},
-                    {"name": "Akwa Palace", "coord": [4.0503, 9.7011]},
-                    {"name": "Bonamoussadi", "coord": [4.0841, 9.7441]}
+                    {"name": "Ndokoti - Hub Transport", "coord": [4.0494, 9.7494], "type": "stop"},
+                    {"name": "Rond-point Deido - Station Taxi", "coord": [4.0624, 9.7041], "type": "stop"},
+                    {"name": "Bonanjo City Hall", "coord": [4.0435, 9.6888], "type": "poi"},
+                    {"name": "Akwa Palace", "coord": [4.0503, 9.7011], "type": "poi"},
+                    {"name": "Carrefour Agip", "coord": [4.0594, 9.7288], "type": "stop"}
                 ],
                 "Yaounde": [
-                    {"name": "Poste Centrale", "coord": [3.8647, 11.5199]},
-                    {"name": "Boulevard du 20 Mai", "coord": [3.8624, 11.5165]},
-                    {"name": "Carrefour Bastos", "coord": [3.9015, 11.5135]},
-                    {"name": "Mokolo Market", "coord": [3.8694, 11.5034]},
-                    {"name": "Universite de Ngoa-Ekelle", "coord": [3.8502, 11.5115]}
+                    {"name": "Poste Centrale - Hub", "coord": [3.8647, 11.5199], "type": "stop"},
+                    {"name": "Boulevard du 20 Mai", "coord": [3.8624, 11.5165], "type": "poi"},
+                    {"name": "Carrefour Bastos - Station", "coord": [3.9015, 11.5135], "type": "stop"},
+                    {"name": "Mokolo Market - Depot", "coord": [3.8694, 11.5034], "type": "stop"},
+                    {"name": "Carrefour Jouvence", "coord": [3.8180, 11.5020], "type": "stop"}
                 ]
             }
 
             for pt in points_interet.get(ville, []):
-                folium.CircleMarker(
+                icon_color = "red" if pt["type"] == "stop" else "blue"
+                icon_type = "car" if pt["type"] == "stop" else "info-sign"
+                folium.Marker(
                     location=pt["coord"],
-                    radius=4,
                     popup=pt["name"],
-                    tooltip=f"Lieu-dit : {pt['name']}",
-                    color="#4F46E5",
-                    fill=True,
-                    fill_color="#4F46E5",
-                    opacity=0.4
+                    tooltip=f"Arret : {pt['name']}" if pt["type"] == "stop" else pt["name"],
+                    icon=folium.Icon(color=icon_color, icon=icon_type)
                 ).add_to(m)
 
             if c_dep: 
