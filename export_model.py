@@ -21,13 +21,19 @@ print("2. Entrainement du modele XGBoost...")
 model = XGBRegressor(n_estimators=200, max_depth=5, learning_rate=0.1, random_state=42)
 model.fit(X, y)
 
+import joblib
+
 print("3. Sauvegarde physique du modele...")
 # Sauvegarde native XGBoost en JSON (idéal pour l'API et Streamlit)
-model_path = "sosso_trajet_xgboost.json"
-model.save_model(model_path)
+model_path_json = "sossoTrajet.json"
+model.save_model(model_path_json)
+
+# Création du fichier .pkl (Standard scikit-learn/joblib) demandé
+model_path_pkl = "sossoTrajet.pkl"
+joblib.dump(model, model_path_pkl)
 
 # Sauvegarde d'un fichier de configuration avec les métadonnées (features attendues et ratios)
-config_path = "sosso_trajet_config.json"
+config_path = "sossoTrajet_config.json"
 config = {
     "features": FEATURES,
     "ratios": {
@@ -38,4 +44,4 @@ config = {
 with open(config_path, "w") as f:
     json.dump(config, f, indent=4)
 
-print(f"✅ Modele sauvegarde avec succes sous '{model_path}' ! Configuration dans '{config_path}'.")
+print(f"Modele sauvegarde sous '{model_path_json}' et '{model_path_pkl}', Config dans '{config_path}'")

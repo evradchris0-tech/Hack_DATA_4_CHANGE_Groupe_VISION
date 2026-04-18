@@ -1,0 +1,17 @@
+{
+    "features": [
+        "log_distance",
+        "log_duree",
+        "vitesse_kmh",
+        "is_pointe",
+        "is_nuit",
+        "dispo_ordinal",
+        "heure_num",
+        "ville_encoded",
+        "heure_plage_imputed"
+    ],
+    "ratios": {
+        "confort": 1.3,
+        "confort_plus": 1.727
+    }
+}
