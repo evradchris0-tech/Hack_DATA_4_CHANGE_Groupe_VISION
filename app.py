@@ -9,7 +9,7 @@ import requests
 
 # === CONFIGURATION GLOBALE ===
 st.set_page_config(
-    page_title="sossoTrajet Pro | Data Engine",
+    page_title="SOSSOTRAJETPRO | Data Engine",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -113,7 +113,7 @@ def get_osrm_route(lat1, lon1, lat2, lon2):
     return None, None, None
 
 def main():
-    st.markdown("<div class='dashboard-title'>sossoTrajet Pro</div>", unsafe_allow_html=True)
+    st.markdown("<div class='dashboard-title'>SOSSOTRAJETPRO</div>", unsafe_allow_html=True)
     st.markdown("<div class='dashboard-subtitle'>Systeme de tarification predictif par Machine Learning</div>", unsafe_allow_html=True)
 
     tab1, tab2 = st.tabs(["SIMULATEUR", "MATRICE DE L'IA"])
@@ -168,7 +168,7 @@ def main():
         
         # Résumé haut niveau
         st.markdown("""
-        Le moteur de **sossoTrajet** repose sur une architecture d'apprentissage supervise (Supervised Learning) 
+        Le moteur de **SOSSOTRAJETPRO** repose sur une architecture d'apprentissage supervise (Supervised Learning) 
         utilisant l'algorithme de pointe **XGBoost Regression**. Le modele a été entrainé pour minimiser l'erreur relative 
         sur les tarifs VTC tout en garantissant une stabilite de prediction face a la congestion urbaine.
         """)
