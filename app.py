@@ -281,7 +281,33 @@ def main():
             m.fit_bounds(bounds)
             
         st_folium(m, width=1100, height=500, key="sosso_map")
+
+        # --- SECTION METHODOLOGIE & TRANSPARENCE ---
+        st.markdown("<div class='section-title'>Méthodologie & Architecture du Modèle</div>", unsafe_allow_html=True)
+        
+        with st.expander("Consulter les détails techniques de l'algorithme SossoTrajet"):
+            col_a, col_b = st.columns(2)
             
+            with col_a:
+                st.markdown("""
+                ### 🧠 Notre Cerveau Algorithmique
+                Pour ce projet, nous avons implémenté **XGBoost (Extreme Gradient Boosting)**. 
+                
+                **Pourquoi ce choix ?**
+                - **Données Tabulaires** : C'est le roi incontesté pour les données de transport structurées.
+                - **Non-Linéarité** : Il capture les interactions complexes entre l'heure de pointe et la congestion que les modèles simples ignorent.
+                - **Vitesse** : L'inférence se fait en moins de 10ms, idéal pour une application mobile.
+                """)
+                
+            with col_b:
+                st.markdown("""
+                ### 📊 Ingénierie des Données
+                - **Transformation Logarithmique** : Nous prédisons le `log(prix)`. Cela permet de minimiser l'**erreur relative**. (Une erreur de 200F est grave sur une course à 500F, mais négligeable sur 5000F).
+                - **Features Clés** : Le modèle analyse la vélocité moyenne théorique, l'indice de congestion (0 à 3), la binarité Jour/Nuit et les spécificités propres à Douala et Yaoundé.
+                """)
+                
+            st.info("💡 **Stratégie métier :** En raison de la volatilité des données réelles, nous prédisons la base 'Eco' de manière robuste, puis appliquons les ratios médians historiques pour dériver les tarifs 'Confort' (x1.3) et 'Confort+' (x1.73).")
+
     elif depart_input == arrivee_input and depart_input != "":
         st.error("Erreur d'intégrité : L'origine et la destination doivent impérativement différer pour l'inférence.")
     else:
