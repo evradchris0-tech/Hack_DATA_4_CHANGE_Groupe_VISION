@@ -77,13 +77,14 @@ def load_data():
 @st.cache_resource(show_spinner=False)
 def get_model(_df=None):
     model = XGBRegressor()
+    # Chargement du modèle pré-entraîné
     model.load_model("sossoTrajet.json")
     return model
 
 @st.cache_data(show_spinner=False)
 def geocode_location(location_name, city):
     try:
-        geolocator = Nominatim(user_agent="sossotrajet_final")
+        geolocator = Nominatim(user_agent="sossotrajet_final_v2")
         loc = geolocator.geocode(f"{location_name}, {city}, Cameroun", timeout=5)
         return (loc.latitude, loc.longitude) if loc else None
     except: return None
@@ -103,7 +104,7 @@ def main():
     st.markdown("<div class='dashboard-title'>sossoTrajet Pro</div>", unsafe_allow_html=True)
     st.markdown("<div class='dashboard-subtitle'>L'Intelligence Artificielle au Service du Transport Camerounais</div>", unsafe_allow_html=True)
 
-    tab1, tab2 = st.tabs(["🚀 SIMULATEUR", "⚙️ ARCHITECTURE IA"])
+    tab1, tab2 = st.tabs(["SIMULATEUR", "ARCHITECTURE IA"])
     
     df = load_data()
     model = get_model(df)
@@ -117,24 +118,34 @@ def main():
         dep = st.selectbox("Départ", [""] + lieux)
         arr = st.selectbox("Arrivée", [""] + lieux)
         heure = st.slider("Heure du trajet", 0, 23, 14)
-        trafic = st.selectbox("Trafic", ["Fluide", "Normal", "Dense", "Bouchons"])
-        trafic_val = {"Fluide":0, "Normal":1, "Dense":2, "Bouchons":3}[trafic]
+        
+        # Indice de congestion supprimé visuellement mais maintenu par défaut (1=Normal) pour le modèle
+        trafic_val = 1 
 
     with tab2:
-        st.markdown("<div class='section-title'>Configuration du Modèle</div>", unsafe_allow_html=True)
-        c1, c2 = st.columns(2)
-        c1.info("**Algorithme :** XGBoost (Extreme Gradient Boosting)")
-        c1.info("**Objectif :** Régression sur Log(Prix)")
-        c2.success("**Features :** 9 variables d'entrée")
-        c2.success("**Validation :** Cross-Validation 5-Fold")
+        st.markdown("<div class='section-title'>Fiche Technique du Modèle</div>", unsafe_allow_html=True)
+        col_p1, col_p2 = st.columns(2)
+        with col_p1:
+            st.info("**Algorithme :** XGBoost Regressor")
+            st.info("**Objectif :** Régression sur Log(Prix)")
+            st.info("**Transformation :** Log1p (Stabilité des variances)")
+        with col_p2:
+            st.success("**Features :** 9 variables d'entrée")
+            st.success("**Validation :** Cross-Validation 5-Fold")
+            st.success("**Optimisation :** Randomized Search CV")
+            
+        st.markdown("<div class='section-title'>Paramètres de Performance</div>", unsafe_allow_html=True)
+        st.markdown("""
+        - **R² (Coefficient de détermination) :** Indique la proportion de la variance des prix expliquée par le modèle. Un R² proche de 1 signifie une excellente corrélation.
+        - **MAE (Mean Absolute Error) :** Erreur moyenne absolue en francs CFA entre le prix réel et le prix prédit.
+        - **RMSE (Root Mean Square Error) :** Écart-type des résidus de prédiction. Pénalise plus lourdement les grandes erreurs.
+        """)
         
-        st.markdown("### Importance des Variables")
-        st.write("Le modèle priorise la distance, la durée et l'indice de congestion pour calculer le tarif optimal.")
-        
-        st.markdown("### Ratios de Catégories")
-        k1, k2 = st.columns(2)
-        k1.metric("Multiplicateur Confort", "x1.30", "Base Eco")
-        k2.metric("Multiplicateur Confort+", "x1.73", "Base Eco")
+        st.markdown("<div class='section-title'>Hyperparamètres Choisis</div>", unsafe_allow_html=True)
+        k1, k2, k3 = st.columns(3)
+        k1.metric("Estimators (Arbres)", "200")
+        k2.metric("Max Depth (Profondeur)", "5")
+        k3.metric("Learning Rate", "0.1")
 
     with tab1:
         if dep and arr and dep != arr:
@@ -158,6 +169,7 @@ def main():
                 v_enc = 1 if ville == "Yaounde" else 0
                 vit = dist / (dur/60) if dur > 0 else 20
                 
+                # dispo_ordinal est passé par défaut à 1
                 pred_input = pd.DataFrame([{'log_distance':np.log1p(dist), 'log_duree':np.log1p(dur), 'vitesse_kmh':vit, 'is_pointe':is_p, 'is_nuit':is_n, 'dispo_ordinal':trafic_val, 'heure_num':heure, 'ville_encoded':v_enc, 'heure_plage_imputed':0}])
                 
                 p_eco_raw = np.expm1(model.predict(pred_input)[0])
@@ -179,9 +191,9 @@ def main():
                 from folium.plugins import AntPath
                 AntPath(locations=[[lat, lon] for lon, lat in route], color="#FF0000", weight=8, delay=600).add_to(m)
                 m.fit_bounds([c_dep, c_arr])
-            st_folium(m, width=1200, height=500, key="sosso_vibrant")
+            st_folium(m, width=1200, height=500, key="sosso_vibrant_v2")
         else:
-            st.markdown("<div style='text-align:center; padding:100px;'><h1>🚕</h1><h2>En attente de destination...</h2></div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align:center; padding:100px;'><h2>En attente de destination...</h2><p>Sélectionnez vos points de départ et d'arrivée dans le menu latéral.</p></div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
