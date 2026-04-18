@@ -207,9 +207,9 @@ def main():
                             f"<p style='margin:0; color:#4B5563; font-size:14px;'>Distance Routière : <b>{distance_km:.2f} km</b></p>"
                             f"<p style='margin:0; color:#4B5563; font-size:14px; margin-top:5px;'>Durée Estimée : <b>{duree_min:.0f} min</b></p></div>", unsafe_allow_html=True)
 
+        # --- PREDICTION ML ---
         if st.sidebar.button("Exécuter la Modélisation ML"):
-            
-            # --- FEATURE ENGINEERING ---
+            # Feature Engineering
             is_pointe = 1 if heure_num in [7, 8, 9, 17, 18, 19] else 0
             is_nuit = 1 if heure_num >= 21 or heure_num <= 5 else 0
             ville_encoded = 1 if ville == "Yaounde" else 0
@@ -227,7 +227,7 @@ def main():
                 'heure_plage_imputed': 0
             }])
             
-            # --- INFERENCE XGBOOST ---
+            # Inférence
             log_pred = model.predict(input_data)[0]
             prix_eco = np.expm1(log_pred)
             
@@ -240,46 +240,47 @@ def main():
             
             # --- LAYOUT DASHBOARD: RESULTATS ---
             st.markdown("<div class='section-title'>Outputs Financiers (Prédictions XGBoost)</div>", unsafe_allow_html=True)
-            
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric(label="Gamme Éco", value=f"{p_eco} XAF", delta="Base Calculation", delta_color="off")
+                st.metric(label="Gamme Éco", value=f"{p_eco} XAF", delta="Standard")
             with col2:
-                st.metric(label="Gamme Confort", value=f"{p_confort} XAF", delta=f"+{int((RATIO_CONFORT-1)*100)}% (Multiplicateur)", delta_color="normal")
+                st.metric(label="Gamme Confort", value=f"{p_confort} XAF", delta=f"+{int((RATIO_CONFORT-1)*100)}%")
             with col3:
-                st.metric(label="Gamme Confort+", value=f"{p_confort_plus} XAF", delta=f"+{int((RATIO_CONFORT_PLUS-1)*100)}% (Multiplicateur)", delta_color="normal")
+                st.metric(label="Gamme Confort+", value=f"{p_confort_plus} XAF", delta=f"+{int((RATIO_CONFORT_PLUS-1)*100)}%")
+        
+        # --- CARTE (TOUJOURS VISIBLE) ---
+        st.markdown("<div class='section-title'>Analyse Topologique & Trajet</div>", unsafe_allow_html=True)
+        
+        base_coords = [4.0511, 9.7679] if ville == "Douala" else [3.8480, 11.5021]
+        m = folium.Map(location=base_coords, zoom_start=13, tiles="CartoDB Positron")
+        
+        bounds = []
+        if coord_depart:
+            folium.Marker(
+                location=coord_depart,
+                popup=f"Origine : {depart_input}",
+                icon=folium.Icon(color="green", icon="play")
+            ).add_to(m)
+            bounds.append(coord_depart)
             
-            # --- LAYOUT DASHBOARD: CARTE ---
-            st.markdown("<div class='section-title'>Rendu Topologique du Tracé (OSRM)</div>", unsafe_allow_html=True)
+        if coord_arrivee:
+            folium.Marker(
+                location=coord_arrivee,
+                popup=f"Destination : {arrivee_input}",
+                icon=folium.Icon(color="red", icon="stop")
+            ).add_to(m)
+            bounds.append(coord_arrivee)
+        
+        if route_coords:
+            folium_coords = [[lat, lon] for lon, lat in route_coords]
+            from folium.plugins import AntPath
+            AntPath(locations=folium_coords, color="#3B82F6", weight=5, opacity=0.8, delay=1000).add_to(m)
+            m.fit_bounds(bounds)
+        elif len(bounds) == 2:
+            folium.PolyLine(bounds, color="#9CA3AF", weight=2, dash_array="5, 5").add_to(m)
+            m.fit_bounds(bounds)
             
-            # Application de bordures arroundies et ombre sur la carte (via un conteneur HTML fictif non possible en iframe, mais Streamlit gère bien nativement).
-            base_coords = [4.0511, 9.7679] if ville == "Douala" else [3.8480, 11.5021]
-            m = folium.Map(location=base_coords, zoom_start=13, tiles="CartoDB Positron")
-            
-            bounds = []
-            if coord_depart:
-                folium.CircleMarker(
-                    location=coord_depart, radius=8, tooltip=f"Départ : {depart_input}",
-                    color="#4F46E5", fill=True, fill_color="#4F46E5", fill_opacity=1
-                ).add_to(m)
-                bounds.append(coord_depart)
-                
-            if coord_arrivee:
-                folium.CircleMarker(
-                    location=coord_arrivee, radius=8, tooltip=f"Arrivée : {arrivee_input}",
-                    color="#EF4444", fill=True, fill_color="#EF4444", fill_opacity=1
-                ).add_to(m)
-                bounds.append(coord_arrivee)
-            
-            if route_coords:
-                folium_coords = [[lat, lon] for lon, lat in route_coords]
-                folium.PolyLine(folium_coords, color="#3B82F6", weight=5, opacity=0.9).add_to(m)
-                m.fit_bounds(bounds)
-            elif len(bounds) == 2:
-                folium.PolyLine(bounds, color="#9CA3AF", weight=2, dash_array="5, 5").add_to(m)
-                m.fit_bounds(bounds)
-                
-            st_folium(m, width=1200, height=500, returned_objects=[])
+        st_folium(m, width=1100, height=500, key="sosso_map")
             
     elif depart_input == arrivee_input and depart_input != "":
         st.error("Erreur d'intégrité : L'origine et la destination doivent impérativement différer pour l'inférence.")
