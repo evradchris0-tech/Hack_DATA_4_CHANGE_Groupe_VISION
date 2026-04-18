@@ -167,6 +167,15 @@ def main():
         for i, (name, desc) in enumerate(features_info):
             f_cols[i % 3].markdown(f"**{name}**\n\n*{desc}*")
 
+        st.markdown("<div class='section-title'>Fiche Technique du Modele</div>", unsafe_allow_html=True)
+        t_col1, t_col2 = st.columns(2)
+        with t_col1:
+            st.info("**Type d'apprentissage :** Supervisé (Supervised Learning)")
+            st.write("Nous utilisons l'**Apprentissage Supervisé** car le modele s'entraine sur des donnees historiques 'etiquetees' (le prix reel observe dans le passe) pour apprendre a deduire les prix futurs.")
+        with t_col2:
+            st.info("**Algorithme choisi :** XGBoost Regression")
+            st.write("XGBoost est un puissant algorithme de Gradient Boosting qui transforme des modeles simples (arbres de decision) en un prédicteur robuste par corrections successives.")
+
         st.markdown("<div class='section-title'>Metriques de Precision</div>", unsafe_allow_html=True)
         m_col1, m_col2, m_col3 = st.columns(3)
         m_col1.metric("Coefficient R2", "0.92", "Haut niveau")
