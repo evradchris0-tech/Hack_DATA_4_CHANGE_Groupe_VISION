@@ -156,39 +156,51 @@ def main():
         trafic_val = 2 if is_pointe else 1
 
     with tab2:
-        st.markdown("<div class='section-title'>Fiches des Variables (Features)</div>", unsafe_allow_html=True)
-        st.write("Le modele XGBoost process 9 variables d'entree critiques pour chaque prediction :")
+        st.markdown("<div class='section-title'>Architecture Analytique</div>", unsafe_allow_html=True)
         
-        f_cols = st.columns(3)
-        features_info = [
-            ("log_distance", "Distance GPS transformee pour stabiliser la courbe de prix."),
-            ("log_duree", "Duree de trajet estimee par l'algorithme OSRM."),
-            ("vitesse_kmh", "Velocite moyenne calculée sur le segment routier."),
-            ("is_pointe", "Indicateur binaire des heures critiques (7h-9h, 17h-19h)."),
-            ("is_nuit", "Indicateur binaire pour la tarification nocturne (21h-5h)."),
-            ("dispo_ordinal", "Niveau de saturation du reseau (index 0 a 3)."),
-            ("heure_num", "Valeur cyclique de l'heure pour capturer la saisonnalite."),
-            ("ville_encoded", "Facteur geographique specifique (Douala vs Yaounde)."),
-            ("heure_plage", "Segmentation des tranches horaires de la journee.")
-        ]
+        # Résumé haut niveau
+        st.markdown("""
+        Le moteur de **sossoTrajet** repose sur une architecture d'apprentissage supervise (Supervised Learning) 
+        utilisant l'algorithme de pointe **XGBoost Regression**. Le modele a été entrainé pour minimiser l'erreur relative 
+        sur les tarifs VTC tout en garantissant une stabilite de prediction face a la congestion urbaine.
+        """)
+
+        st.markdown("<div class='section-title'>Variables d'Entree (Features Grid)</div>", unsafe_allow_html=True)
+        # Affichage des 9 features en grille 3x3
+        f1, f2, f3 = st.columns(3)
+        with f1:
+            st.info("**log_distance**  \n*Distance reelle corrigee par log1p pour attenuer les valeurs extremes.*")
+            st.info("**log_duree**  \n*Temps de trajet OSRM integre avec correction logarithmique.*")
+            st.info("**vitesse_kmh**  \n*Ratio physique distance/temps pour evaluer la fluidite.*")
+        with f2:
+            st.info("**is_pointe**  \n*Variable binaire identifiant les saturations pendulaires.*")
+            st.info("**is_nuit**  \n*Parametre discriminant pour les majorations nocturnes.*")
+            st.info("**dispo_ordinal**  \n*Index de densite urbaine (echelle de 0 a 3).*")
+        with f3:
+            st.info("**heure_num**  \n*Composante temporelle brute utilisee par l'arbre de decision.*")
+            st.info("**ville_encoded**  \n*Encodage categoriel distinguant Yaounde de Douala.*")
+            st.info("**heure_plage**  \n*Segmentation macro de la journee (Matinee, Soir, etc.).*")
+
+        st.markdown("<div class='section-title'>Parametres du Modele & Performance</div>", unsafe_allow_html=True)
+        col_t1, col_t2 = st.columns(2)
         
-        for i, (name, desc) in enumerate(features_info):
-            f_cols[i % 3].markdown(f"**{name}**\n\n*{desc}*")
+        with col_t1:
+            st.markdown("### Configuration XGBoost")
+            st.table(pd.DataFrame({
+                "Hyperparametre": ["Phase d'apprentissage", "Nombre d'estimateurs", "Profondeur maximale", "Vitesse d'apprentissage (Rate)", "Random State"],
+                "Valeur": ["Supervisee", "200 arbres", "5 niveaux", "0.1", "42"]
+            }))
+            
+        with col_t2:
+            st.markdown("### Score de Precision")
+            m_a, m_b = st.columns(2)
+            m_a.metric("Coefficient R2", "0.92", "Fidelite")
+            m_b.metric("MAE (Erreur)", "142 XAF", "Moyenne")
+            
+            st.write("Le **Coefficient R2** de 0.92 confirme que l'IA capture 92% de la complexite du marche Yango au Cameroun.")
 
-        st.markdown("<div class='section-title'>Fiche Technique du Modele</div>", unsafe_allow_html=True)
-        t_col1, t_col2 = st.columns(2)
-        with t_col1:
-            st.info("**Type d'apprentissage :** Supervisé (Supervised Learning)")
-            st.write("Nous utilisons l'**Apprentissage Supervisé** car le modele s'entraine sur des donnees historiques 'etiquetees' (le prix reel observe dans le passe) pour apprendre a deduire les prix futurs.")
-        with t_col2:
-            st.info("**Algorithme choisi :** XGBoost Regression")
-            st.write("XGBoost est un puissant algorithme de Gradient Boosting qui transforme des modeles simples (arbres de decision) en un prédicteur robuste par corrections successives.")
-
-        st.markdown("<div class='section-title'>Metriques de Precision</div>", unsafe_allow_html=True)
-        m_col1, m_col2, m_col3 = st.columns(3)
-        m_col1.metric("Coefficient R2", "0.92", "Haut niveau")
-        m_col2.metric("MAE", "142 XAF", "Erreur moyenne")
-        m_col3.metric("RMSE", "186 XAF", "Stabilite")
+        st.markdown("<hr>", unsafe_allow_html=True)
+        st.write("Ce modele a été deployee pour assurer une transparence tarifaire totale aux citoyens camerounais.")
 
     with tab1:
         if dep and arr and dep != arr:
