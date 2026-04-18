@@ -9,112 +9,67 @@ import requests
 
 # === CONFIGURATION GLOBALE ===
 st.set_page_config(
-    page_title="SossoTrajet | Analytics",
+    page_title="sossoTrajet Pro | Data Engine",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# === INJECTION CSS CUSTOM (UI/UX) ===
+# === INJECTION CSS VIBRANT (UI/UX) ===
 st.markdown("""
 <style>
-    /* Import police professionnelle (Inter) */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
     
-    html, body, [class*="css"]  {
-        font-family: 'Inter', sans-serif;
-    }
+    html, body, [class*="css"]  { font-family: 'Inter', sans-serif; }
 
-    /* Style des Cartes "KPI / Metrics" */
-    div[data-testid="metric-container"] {
-        background-color: #ffffff;
-        border: 1px solid #e5e7eb;
-        padding: 5% 5% 5% 5%;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        text-align: center;
-        transition: transform 0.2s ease-in-out;
-    }
-    div[data-testid="metric-container"]:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }
-    div[data-testid="metric-container"] label {
-        color: #6B7280 !important;
-        font-weight: 600 !important;
-        font-size: 1.1rem !important;
-        margin-bottom: 8px !important;
-    }
-    div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
-        color: #1E3A8A !important;
-        font-weight: 800 !important;
-        font-size: 2.2rem !important;
-    }
-    div[data-testid="metric-container"] div[data-testid="stMetricDelta"] {
-        font-size: 0.9rem !important;
-    }
-
-    /* Style du Bouton Principal */
-    .stButton>button {
-        background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
-        color: #ffffff !important;
-        border: none;
-        padding: 12px 24px;
-        border-radius: 8px;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-        font-size: 1.1rem;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);
-        width: 100%;
-        margin-top: 15px;
-    }
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.5);
-    }
-
-    /* Style des headers Custom */
+    /* Header Vibrant Gradient */
     .dashboard-title {
-        color: #0F172A; /* Slate 900 */
-        font-weight: 800;
-        font-size: 2.5rem;
-        margin-bottom: -15px;
-        margin-top: -30px;
+        background: linear-gradient(90deg, #4F46E5 0%, #EC4899 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 900;
+        font-size: 3.5rem;
+        text-align: center;
+        margin-top: -40px;
     }
     .dashboard-subtitle {
-        color: #334155; /* Slate 700 */
-        font-size: 1.1rem;
-        font-weight: 500;
+        color: #1E293B;
+        font-size: 1.2rem;
+        font-weight: 600;
+        text-align: center;
         margin-bottom: 30px;
     }
-    .section-title {
-        color: #1E3A8A; /* Dark Blue */
-        font-weight: 700;
-        font-size: 1.5rem;
-        border-bottom: 2px solid #CBD5E1;
-        padding-bottom: 10px;
-        margin-top: 30px;
-        margin-bottom: 20px;
-    }
-    
-    /* Conteneur esthétique des inputs sidebar */
-    .css-1544g2n {
-        padding: 3rem 1.5rem;
+
+    /* Metrics Cards */
+    div[data-testid="metric-container"] {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        border-top: 5px solid #EC4899;
     }
 
-    /* Forcer la couleur du texte markdown général pour la visibilité */
-    .stMarkdown p, .stMarkdown li {
-        color: #1E293B !important;
-        line-height: 1.6;
+    /* Bouton Flashy */
+    .stButton>button {
+        background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+        color: white !important;
+        border-radius: 50px;
+        font-weight: 800;
+        height: 3rem;
+        box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
+        border: none;
+        width: 100%;
     }
-    .stMarkdown h3 {
-        color: #0F172A !important;
-        font-weight: 700 !important;
+
+    .section-title {
+        color: #4F46E5;
+        font-weight: 800;
+        font-size: 1.8rem;
+        margin-top: 20px;
+        text-transform: uppercase;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# === CACHE ET MODELES ===
 @st.cache_data(show_spinner=False)
 def load_data():
     return pd.read_csv('SossoTrajet_Clean.csv')
@@ -128,13 +83,10 @@ def get_model(_df=None):
 @st.cache_data(show_spinner=False)
 def geocode_location(location_name, city):
     try:
-        geolocator = Nominatim(user_agent="sossotrajet_app")
+        geolocator = Nominatim(user_agent="sossotrajet_final")
         loc = geolocator.geocode(f"{location_name}, {city}, Cameroun", timeout=5)
-        if loc:
-            return loc.latitude, loc.longitude
-        return None
-    except:
-        return None
+        return (loc.latitude, loc.longitude) if loc else None
+    except: return None
 
 @st.cache_data(show_spinner=False)
 def get_osrm_route(lat1, lon1, lat2, lon2):
@@ -143,189 +95,93 @@ def get_osrm_route(lat1, lon1, lat2, lon2):
         res = requests.get(url, timeout=5).json()
         if res.get('code') == 'Ok':
             route = res['routes'][0]
-            distance = route['distance'] / 1000.0
-            duration = route['duration'] / 60.0
-            coords = route['geometry']['coordinates']
-            return distance, duration, coords
-    except Exception:
-        pass
+            return route['distance']/1000, route['duration']/60, route['geometry']['coordinates']
+    except: pass
     return None, None, None
 
 def main():
-    # === HEADER PRINCIPAL ===
-    st.markdown("<div class='dashboard-title'>SossoTrajet Analytics</div>", unsafe_allow_html=True)
-    st.markdown("<div class='dashboard-subtitle'>Moteur de tarification VTC optimisé par XGBoost & Routing Géospatial Automatique</div>", unsafe_allow_html=True)
+    st.markdown("<div class='dashboard-title'>sossoTrajet Pro</div>", unsafe_allow_html=True)
+    st.markdown("<div class='dashboard-subtitle'>L'Intelligence Artificielle au Service du Transport Camerounais</div>", unsafe_allow_html=True)
+
+    tab1, tab2 = st.tabs(["🚀 SIMULATEUR", "⚙️ ARCHITECTURE IA"])
     
     df = load_data()
     model = get_model(df)
-    
-    RATIO_CONFORT = 1.30
-    RATIO_CONFORT_PLUS = 1.727
-    
-    # === SIDEBAR (PANNEAU DE CONTROLE) ===
+    RATIO_CONFORT, RATIO_PLUS = 1.30, 1.727
+
     with st.sidebar:
-        st.markdown("<div style='text-align:center;'><h2 style='color:#111827;'>Panneau de Contrôle</h2><p style='color:#6B7280; font-size:14px;'>Configuration de l'Inférence</p></div>", unsafe_allow_html=True)
-        st.markdown("<hr style='margin-top:0px; margin-bottom:20px;'>", unsafe_allow_html=True)
-        
-        ville = st.selectbox("Zone Métropolitaine", ["Douala", "Yaounde"])
-        
-        df_ville = df[df['ville'] == ville]
-        lieux = sorted(list(set(df_ville['depart'].dropna().unique()) | set(df_ville['arrivee'].dropna().unique())))
-        
-        depart_input = st.selectbox("Origine du trajet", [""] + lieux)
-        arrivee_input = st.selectbox("Destination du trajet", [""] + lieux)
-        
-        st.markdown("<hr style='margin-top:20px; margin-bottom:20px;'>", unsafe_allow_html=True)
-        
-        heure_num = st.slider("Heure de Modélisation (0h-23h)", 0, 23, 14, help="Saisissez l'heure prévue du départ pour prendre en compte le trafic historique.")
-        
-        dispo_map = {"Fluide (Niv. 0)": 0, "Normal (Niv. 1)": 1, "Dense (Niv. 2)": 2, "Critique (Niv. 3)": 3}
-        dispo_str = st.selectbox("Indice de Congestion", list(dispo_map.keys()))
-        dispo_ordinal = dispo_map[dispo_str]
-        
-        # Placeholder pour contenir le bouton qui sera activé au clic
-        execute_btn = False
+        st.markdown("<h2 style='color:#4F46E5; text-align:center;'>REGLAGES</h2>", unsafe_allow_html=True)
+        ville = st.selectbox("Ville", ["Douala", "Yaounde"])
+        df_v = df[df['ville'] == ville]
+        lieux = sorted(list(set(df_v['depart'].dropna().unique()) | set(df_v['arrivee'].dropna().unique())))
+        dep = st.selectbox("Départ", [""] + lieux)
+        arr = st.selectbox("Arrivée", [""] + lieux)
+        heure = st.slider("Heure du trajet", 0, 23, 14)
+        trafic = st.selectbox("Trafic", ["Fluide", "Normal", "Dense", "Bouchons"])
+        trafic_val = {"Fluide":0, "Normal":1, "Dense":2, "Bouchons":3}[trafic]
 
-    # === LOGIQUE & AFFICHAGE CENTRAL ===
-    if depart_input and arrivee_input and depart_input != arrivee_input:
+    with tab2:
+        st.markdown("<div class='section-title'>Configuration du Modèle</div>", unsafe_allow_html=True)
+        c1, c2 = st.columns(2)
+        c1.info("**Algorithme :** XGBoost (Extreme Gradient Boosting)")
+        c1.info("**Objectif :** Régression sur Log(Prix)")
+        c2.success("**Features :** 9 variables d'entrée")
+        c2.success("**Validation :** Cross-Validation 5-Fold")
         
-        with st.spinner("Calcul topologique de l'itinéraire en cours..."):
-            coord_depart = geocode_location(depart_input, ville)
-            coord_arrivee = geocode_location(arrivee_input, ville)
-            
-            distance_km = None
-            duree_min = None
-            route_coords = None
-            
-            if coord_depart and coord_arrivee:
-                distance_km, duree_min, route_coords = get_osrm_route(
-                    coord_depart[0], coord_depart[1], 
-                    coord_arrivee[0], coord_arrivee[1]
-                )
-                
-            if distance_km is None or duree_min is None:
-                route_stats = df_ville[(df_ville['depart'] == depart_input) & (df_ville['arrivee'] == arrivee_input)]
-                if len(route_stats) > 0:
-                    distance_km = route_stats['distance'].median()
-                    duree_min = route_stats['duree_estimee'].median()
-                else:
-                    distance_km = 5.0
-                    duree_min = 15.0
+        st.markdown("### Importance des Variables")
+        st.write("Le modèle priorise la distance, la durée et l'indice de congestion pour calculer le tarif optimal.")
+        
+        st.markdown("### Ratios de Catégories")
+        k1, k2 = st.columns(2)
+        k1.metric("Multiplicateur Confort", "x1.30", "Base Eco")
+        k2.metric("Multiplicateur Confort+", "x1.73", "Base Eco")
 
-        # Affichage Infos Techniques dans la barre sous les inputs
-        st.sidebar.markdown(f"<div style='background-color:#F3F4F6; padding:15px; border-radius:8px; margin-top:20px;'>"
-                            f"<p style='margin:0; color:#4B5563; font-size:14px;'>Distance Routière : <b>{distance_km:.2f} km</b></p>"
-                            f"<p style='margin:0; color:#4B5563; font-size:14px; margin-top:5px;'>Durée Estimée : <b>{duree_min:.0f} min</b></p></div>", unsafe_allow_html=True)
+    with tab1:
+        if dep and arr and dep != arr:
+            with st.spinner("Analyse du cadastre..."):
+                c_dep = geocode_location(dep, ville)
+                c_arr = geocode_location(arr, ville)
+                dist, dur, route = None, None, None
+                if c_dep and c_arr:
+                    dist, dur, route = get_osrm_route(c_dep[0], c_dep[1], c_arr[0], c_arr[1])
+                
+                if dist is None:
+                    stats = df_v[(df_v['depart']==dep) & (df_v['arrivee']==arr)]
+                    dist = stats['distance'].median() if not stats.empty else 5.0
+                    dur = stats['duree_estimee'].median() if not stats.empty else 15.0
 
-        # --- PREDICTION ML ---
-        if st.sidebar.button("Exécuter la Modélisation ML"):
-            # Feature Engineering
-            is_pointe = 1 if heure_num in [7, 8, 9, 17, 18, 19] else 0
-            is_nuit = 1 if heure_num >= 21 or heure_num <= 5 else 0
-            ville_encoded = 1 if ville == "Yaounde" else 0
-            vitesse = distance_km / (duree_min / 60) if duree_min > 0 else 20
-            
-            input_data = pd.DataFrame([{
-                'log_distance': np.log1p(distance_km),
-                'log_duree': np.log1p(duree_min),
-                'vitesse_kmh': vitesse,
-                'is_pointe': is_pointe,
-                'is_nuit': is_nuit,
-                'dispo_ordinal': dispo_ordinal,
-                'heure_num': heure_num,
-                'ville_encoded': ville_encoded,
-                'heure_plage_imputed': 0
-            }])
-            
-            # Inférence
-            log_pred = model.predict(input_data)[0]
-            prix_eco = np.expm1(log_pred)
-            
-            def round_fcfa(prix):
-                return int(round(prix / 50) * 50)
-                
-            p_eco = round_fcfa(prix_eco)
-            p_confort = round_fcfa(prix_eco * RATIO_CONFORT)
-            p_confort_plus = round_fcfa(prix_eco * RATIO_CONFORT_PLUS)
-            
-            # --- LAYOUT DASHBOARD: RESULTATS ---
-            st.markdown("<div class='section-title'>Outputs Financiers (Prédictions XGBoost)</div>", unsafe_allow_html=True)
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric(label="Gamme Éco", value=f"{p_eco} XAF", delta="Standard")
-            with col2:
-                st.metric(label="Gamme Confort", value=f"{p_confort} XAF", delta=f"+{int((RATIO_CONFORT-1)*100)}%")
-            with col3:
-                st.metric(label="Gamme Confort+", value=f"{p_confort_plus} XAF", delta=f"+{int((RATIO_CONFORT_PLUS-1)*100)}%")
-        
-        # --- CARTE (TOUJOURS VISIBLE) ---
-        st.markdown("<div class='section-title'>Analyse Topologique & Trajet</div>", unsafe_allow_html=True)
-        
-        base_coords = [4.0511, 9.7679] if ville == "Douala" else [3.8480, 11.5021]
-        m = folium.Map(location=base_coords, zoom_start=13, tiles="CartoDB Positron")
-        
-        bounds = []
-        if coord_depart:
-            folium.Marker(
-                location=coord_depart,
-                popup=f"Origine : {depart_input}",
-                icon=folium.Icon(color="green", icon="play")
-            ).add_to(m)
-            bounds.append(coord_depart)
-            
-        if coord_arrivee:
-            folium.Marker(
-                location=coord_arrivee,
-                popup=f"Destination : {arrivee_input}",
-                icon=folium.Icon(color="red", icon="stop")
-            ).add_to(m)
-            bounds.append(coord_arrivee)
-        
-        if route_coords:
-            folium_coords = [[lat, lon] for lon, lat in route_coords]
-            from folium.plugins import AntPath
-            AntPath(locations=folium_coords, color="#3B82F6", weight=5, opacity=0.8, delay=1000).add_to(m)
-            m.fit_bounds(bounds)
-        elif len(bounds) == 2:
-            folium.PolyLine(bounds, color="#9CA3AF", weight=2, dash_array="5, 5").add_to(m)
-            m.fit_bounds(bounds)
-            
-        st_folium(m, width=1100, height=500, key="sosso_map")
+            st.sidebar.markdown(f"<div style='background:#EEF2FF; padding:10px; border-radius:10px; border:2px solid #4F46E5; color:#4F46E5; font-weight:bold;'>{dist:.2f} km | {dur:.0f} min</div>", unsafe_allow_html=True)
 
-        # --- SECTION METHODOLOGIE & TRANSPARENCE ---
-        st.markdown("<div class='section-title'>Méthodologie & Architecture du Modèle</div>", unsafe_allow_html=True)
-        
-        with st.expander("Consulter les détails techniques de l'algorithme SossoTrajet"):
-            col_a, col_b = st.columns(2)
-            
-            with col_a:
-                st.markdown("""
-                ### 🧠 Notre Cerveau Algorithmique
-                Pour ce projet, nous avons implémenté **XGBoost (Extreme Gradient Boosting)**. 
+            if st.sidebar.button("PREDIRE LE PRIX"):
+                is_p = 1 if heure in [7,8,9,17,18,19] else 0
+                is_n = 1 if heure >= 21 or heure <= 5 else 0
+                v_enc = 1 if ville == "Yaounde" else 0
+                vit = dist / (dur/60) if dur > 0 else 20
                 
-                **Pourquoi ce choix ?**
-                - **Données Tabulaires** : C'est le roi incontesté pour les données de transport structurées.
-                - **Non-Linéarité** : Il capture les interactions complexes entre l'heure de pointe et la congestion que les modèles simples ignorent.
-                - **Vitesse** : L'inférence se fait en moins de 10ms, idéal pour une application mobile.
-                """)
+                pred_input = pd.DataFrame([{'log_distance':np.log1p(dist), 'log_duree':np.log1p(dur), 'vitesse_kmh':vit, 'is_pointe':is_p, 'is_nuit':is_n, 'dispo_ordinal':trafic_val, 'heure_num':heure, 'ville_encoded':v_enc, 'heure_plage_imputed':0}])
                 
-            with col_b:
-                st.markdown("""
-                ### 📊 Ingénierie des Données
-                - **Transformation Logarithmique** : Nous prédisons le `log(prix)`. Cela permet de minimiser l'**erreur relative**. (Une erreur de 200F est grave sur une course à 500F, mais négligeable sur 5000F).
-                - **Features Clés** : Le modèle analyse la vélocité moyenne théorique, l'indice de congestion (0 à 3), la binarité Jour/Nuit et les spécificités propres à Douala et Yaoundé.
-                """)
-                
-            st.info("💡 **Stratégie métier :** En raison de la volatilité des données réelles, nous prédisons la base 'Eco' de manière robuste, puis appliquons les ratios médians historiques pour dériver les tarifs 'Confort' (x1.3) et 'Confort+' (x1.73).")
+                p_eco_raw = np.expm1(model.predict(pred_input)[0])
+                p_e = int(round(p_eco_raw/50)*50)
+                p_c = int(round((p_eco_raw*RATIO_CONFORT)/50)*50)
+                p_p = int(round((p_eco_raw*RATIO_PLUS)/50)*50)
 
-    elif depart_input == arrivee_input and depart_input != "":
-        st.error("Erreur d'intégrité : L'origine et la destination doivent impérativement différer pour l'inférence.")
-    else:
-        # Message par defaut pour inciter l'utilisateur
-        st.markdown("<div style='text-align: center; margin-top: 10vh;'>"
-                    "<img src='https://cdn-icons-png.flaticon.com/512/854/854878.png' height='80' style='opacity: 0.5;'/>"
-                    "<h3 style='color: #6B7280; font-weight: 500;'>Sélectionnez des points géospatiaux dans le panneau <br>latéral pour débuter la prédiction tarifaire.</h3>"
-                    "</div>", unsafe_allow_html=True)
+                st.markdown("<div class='section-title'>Estimations du Marché</div>", unsafe_allow_html=True)
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Yango Eco", f"{p_e} XAF")
+                m2.metric("Yango Confort", f"{p_c} XAF")
+                m3.metric("Yango Confort+", f"{p_p} XAF")
+
+            st.markdown("<div class='section-title'>Tracé du Trajet</div>", unsafe_allow_html=True)
+            m = folium.Map(location=[4.0511, 9.7679] if ville == "Douala" else [3.8480, 11.5021], zoom_start=13, tiles="CartoDB positron")
+            if c_dep: folium.Marker(c_dep, icon=folium.Icon(color='green')).add_to(m)
+            if c_arr: folium.Marker(c_arr, icon=folium.Icon(color='red')).add_to(m)
+            if route:
+                from folium.plugins import AntPath
+                AntPath(locations=[[lat, lon] for lon, lat in route], color="#FF0000", weight=8, delay=600).add_to(m)
+                m.fit_bounds([c_dep, c_arr])
+            st_folium(m, width=1200, height=500, key="sosso_vibrant")
+        else:
+            st.markdown("<div style='text-align:center; padding:100px;'><h1>🚕</h1><h2>En attente de destination...</h2></div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
