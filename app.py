@@ -48,16 +48,20 @@ st.markdown("""
         border-top: 5px solid #EC4899;
     }
 
-    /* Bouton Flashy */
+    /* Bouton Sobre et Sombre */
     .stButton>button {
-        background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
-        color: white !important;
-        border-radius: 50px;
-        font-weight: 800;
-        height: 3rem;
-        box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
+        background-color: #0F172A !important; /* Anthracite très sombre */
+        color: #FFFFFF !important;
+        border-radius: 8px;
+        font-weight: 600;
+        height: 3.5rem;
         border: none;
         width: 100%;
+        transition: background-color 0.3s ease;
+    }
+    .stButton>button:hover {
+        background-color: #1E293B !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     .section-title {
