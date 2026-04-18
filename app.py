@@ -75,23 +75,23 @@ st.markdown("""
 
     /* Style des headers Custom */
     .dashboard-title {
-        color: #111827;
+        color: #0F172A; /* Slate 900 */
         font-weight: 800;
         font-size: 2.5rem;
         margin-bottom: -15px;
         margin-top: -30px;
     }
     .dashboard-subtitle {
-        color: #6B7280;
+        color: #334155; /* Slate 700 */
         font-size: 1.1rem;
-        font-weight: 400;
+        font-weight: 500;
         margin-bottom: 30px;
     }
     .section-title {
-        color: #1E3A8A;
+        color: #1E3A8A; /* Dark Blue */
         font-weight: 700;
         font-size: 1.5rem;
-        border-bottom: 2px solid #E5E7EB;
+        border-bottom: 2px solid #CBD5E1;
         padding-bottom: 10px;
         margin-top: 30px;
         margin-bottom: 20px;
@@ -100,6 +100,16 @@ st.markdown("""
     /* Conteneur esthétique des inputs sidebar */
     .css-1544g2n {
         padding: 3rem 1.5rem;
+    }
+
+    /* Forcer la couleur du texte markdown général pour la visibilité */
+    .stMarkdown p, .stMarkdown li {
+        color: #1E293B !important;
+        line-height: 1.6;
+    }
+    .stMarkdown h3 {
+        color: #0F172A !important;
+        font-weight: 700 !important;
     }
 </style>
 """, unsafe_allow_html=True)
