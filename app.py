@@ -127,8 +127,27 @@ def main():
         ville = st.selectbox("Ville cible", ["Douala", "Yaounde"])
         df_v = df[df['ville'] == ville]
         lieux = sorted(list(set(df_v['depart'].dropna().unique()) | set(df_v['arrivee'].dropna().unique())))
-        dep = st.selectbox("Point de depart", [""] + lieux)
-        arr = st.selectbox("Point d'arrivee", [""] + lieux)
+        
+        st.markdown("**Recherche rapide**")
+        search_query = st.text_input("Saisir un nom de quartier", placeholder="Ex: Akwa, Bastos...")
+        
+        # Logique de recherche simple
+        dep_idx, arr_idx = 0, 0
+        if search_query:
+            # On cherche le match le plus proche
+            matches = [l for l in lieux if search_query.lower() in l.lower()]
+            if matches:
+                st.sidebar.success(f"Resultat trouve : {matches[0]}")
+                # On peut pre-selectionner si besoin, mais ici on laisse l'utilisateur choisir dans la liste reduite
+                lieux_filtres = matches + [l for l in lieux if l not in matches]
+            else:
+                st.sidebar.error("Aucun quartier correspondant.")
+                lieux_filtres = lieux
+        else:
+            lieux_filtres = lieux
+
+        dep = st.selectbox("Point de depart", [""] + lieux_filtres)
+        arr = st.selectbox("Point d'arrivee", [""] + lieux_filtres)
         
         st.markdown("<hr>", unsafe_allow_html=True)
         
