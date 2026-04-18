@@ -132,20 +132,27 @@ def main():
         
         st.markdown("<hr>", unsafe_allow_html=True)
         
-        # Indicateurs visuels pour l'heure
-        heure = st.slider("Horodateur", 0, 23, 14)
+        import datetime
+        now = datetime.datetime.now()
+        
+        # Affichage de la date réelle pour le contexte
+        st.markdown(f"<div style='font-size:0.85rem; color:#64748b;'>Simulation du : {now.strftime('%d/%m/%Y')}</div>", unsafe_allow_html=True)
+        
+        # Horodateur initialisé sur l'heure actuelle
+        heure = st.slider("Heure de simulation", 0, 23, now.hour)
+        
         is_pointe = 1 if heure in [7,8,9,17,18,19] else 0
         is_nuit = 1 if heure >= 21 or heure <= 5 else 0
         
-        if is_pointe:
-            st.markdown("<div class='status-indicator' style='background:#FEE2E2; color:#B91C1C;'>HEURE DE POINTE DETECTEE</div>", unsafe_allow_html=True)
-        else:
-            st.markdown("<div class='status-indicator' style='background:#ECFDF5; color:#065F46;'>FLUX DE TRAFIC NORMAL</div>", unsafe_allow_html=True)
-
-        # Paramètre temps (UI requested)
-        periode_voyage = st.radio("Periode temporelle", ["Journee", "Nuit"], index=1 if is_nuit else 0)
+        # Indicateur visuel automatique
+        statut_cycle = "CYCLE NUIT" if is_nuit else "CYCLE JOUR"
+        couleur_cycle = "#1E293B" if is_nuit else "#F59E0B"
+        st.markdown(f"<div class='status-indicator' style='background:{couleur_cycle}; color:white;'>{statut_cycle}</div>", unsafe_allow_html=True)
         
-        # Mapping interne automatique basé sur l'heure de pointe
+        if is_pointe:
+            st.markdown("<div class='status-indicator' style='background:#FEE2E2; color:#B91C1C;'>HEURE DE POINTE</div>", unsafe_allow_html=True)
+        
+        # Mapping interne automatique
         trafic_val = 2 if is_pointe else 1
 
     with tab2:
