@@ -7,9 +7,14 @@ import folium
 from streamlit_folium import st_folium
 import requests
 
-# Configuration de la page
-st.set_page_config(page_title="SossoTrajet - Simulation", page_icon="🚖", layout="wide")
+# === CONFIGURATION GLOBALE ===
+st.set_page_config(
+    page_title="SossoTrajet | Simulation Tarifaire",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
+# === CACHE ET MODELES ===
 @st.cache_data
 def load_data():
     return pd.read_csv('SossoTrajet_Clean.csv')
@@ -33,7 +38,6 @@ def geocode_location(location_name, city):
 
 @st.cache_data
 def get_osrm_route(lat1, lon1, lat2, lon2):
-    """Calcule la distance, duree et la route GEOJSON via OSRM"""
     try:
         url = f"http://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson"
         res = requests.get(url, timeout=5).json()
@@ -41,42 +45,44 @@ def get_osrm_route(lat1, lon1, lat2, lon2):
             route = res['routes'][0]
             distance = route['distance'] / 1000.0
             duration = route['duration'] / 60.0
-            coords = route['geometry']['coordinates'] # [lon, lat] list
+            coords = route['geometry']['coordinates']
             return distance, duration, coords
-    except Exception as e:
+    except Exception:
         pass
     return None, None, None
 
 def main():
-    st.title("🚖 SossoTrajet - Estimateur de Prix Yango")
-    st.markdown("Bienvenue sur le simulateur **SossoTrajet**. Indiquez vos points de départ et d'arrivée, nous calculons **automatiquement** l'itinéraire et estimons le prix.")
+    # === HEADER ===
+    st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>SossoTrajet : Inférence Tarifaire</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #6B7280; font-size: 1.1rem;'>Plateforme analytique de prédiction des tarifs VTC basée sur l'algorithme XGBoost et la cartographie OSRM.</p>", unsafe_allow_html=True)
+    st.markdown("---")
     
     df = load_data()
     model = get_model(df)
     
-    # Ratios de prix
     RATIO_CONFORT = 1.30
     RATIO_CONFORT_PLUS = 1.727
     
-    st.sidebar.header("📍 Itinéraire")
-    ville = st.sidebar.selectbox("Ville", ["Douala", "Yaounde"])
+    # === SIDEBAR ===
+    st.sidebar.markdown("<h3 style='color: #1E3A8A;'>Paramètres Géospatiaux</h3>", unsafe_allow_html=True)
+    ville = st.sidebar.selectbox("Zone métropolitaine", ["Douala", "Yaounde"])
     
     df_ville = df[df['ville'] == ville]
     lieux = sorted(list(set(df_ville['depart'].dropna().unique()) | set(df_ville['arrivee'].dropna().unique())))
     
-    depart_input = st.sidebar.selectbox("Point de départ", [""] + lieux)
-    arrivee_input = st.sidebar.selectbox("Point d'arrivée", [""] + lieux)
+    depart_input = st.sidebar.selectbox("Origine du trajet", [""] + lieux)
+    arrivee_input = st.sidebar.selectbox("Destination du trajet", [""] + lieux)
     
-    st.sidebar.header("⏰ Conditions de route")
-    heure_num = st.sidebar.slider("Heure de départ (0-23h)", 0, 23, 14)
+    st.sidebar.markdown("<br><h3 style='color: #1E3A8A;'>Contexte Temporel & Trafic</h3>", unsafe_allow_html=True)
+    heure_num = st.sidebar.slider("Heure estimée de départ (0h-23h)", 0, 23, 14)
     
-    dispo_map = {"Vert (Fluide)": 0, "Jaune (Normal)": 1, "Orange (Dense)": 2, "Rouge (Bouchons)": 3}
-    dispo_str = st.sidebar.selectbox("Trafic / Disponibilité VTC", list(dispo_map.keys()))
+    dispo_map = {"Fluide (Niveau 0)": 0, "Normal (Niveau 1)": 1, "Dense (Niveau 2)": 2, "Bouchons (Niveau 3)": 3}
+    dispo_str = st.sidebar.selectbox("Indice de Congestion", list(dispo_map.keys()))
     dispo_ordinal = dispo_map[dispo_str]
     
+    # === LOGIQUE PRINCIPALE ===
     if depart_input and arrivee_input and depart_input != arrivee_input:
         
-        # Geocodage et OSRM
         coord_depart = geocode_location(depart_input, ville)
         coord_arrivee = geocode_location(arrivee_input, ville)
         
@@ -90,25 +96,26 @@ def main():
                 coord_arrivee[0], coord_arrivee[1]
             )
             
-        # Si OSRM ou geocodage échoue, on cherche dans l'historique de notre Dataset !
         if distance_km is None or duree_min is None:
-            st.warning("⚠️ Calcul OpenStreetMap indisponible pour ces lieux exacts. Utilisation des moyennes de notre base historique.")
+            # Fallback historique
             route_stats = df_ville[(df_ville['depart'] == depart_input) & (df_ville['arrivee'] == arrivee_input)]
             if len(route_stats) > 0:
                 distance_km = route_stats['distance'].median()
                 duree_min = route_stats['duree_estimee'].median()
+                st.info("Données GPS inaccessibles. Utilisation des médianes historiques du dataset.")
             else:
-                # Fallback absolut
                 distance_km = 5.0
                 duree_min = 15.0
-                st.error("Aucune donnée historique trouvée. Affichage par défaut (5km).")
+                st.warning("Aucune donnée topologique ou historique disponible. Valeurs par défaut appliquées.")
 
-        # Affichage temps / distance calculés auto
-        st.sidebar.markdown(f"**Distance calculée :** {distance_km:.1f} km")
-        st.sidebar.markdown(f"**Durée estimée :** {duree_min:.0f} min")
+        st.sidebar.markdown("---")
+        st.sidebar.markdown(f"<span style='color:#4B5563'><b>Distance réseau :</b> {distance_km:.2f} km</span>", unsafe_allow_html=True)
+        st.sidebar.markdown(f"<span style='color:#4B5563'><b>Durée estimée :</b> {duree_min:.0f} min</span>", unsafe_allow_html=True)
+        st.sidebar.markdown("<br>", unsafe_allow_html=True)
 
-        if st.sidebar.button("🚀 Estimer le Prix", use_container_width=True):
-            # --- FEATURE ENGINEERING ---
+        if st.sidebar.button("Exécuter la prédiction globale", use_container_width=True):
+            
+            # Feature Engineering
             is_pointe = 1 if heure_num in [7, 8, 9, 17, 18, 19] else 0
             is_nuit = 1 if heure_num >= 21 or heure_num <= 5 else 0
             ville_encoded = 1 if ville == "Yaounde" else 0
@@ -126,7 +133,7 @@ def main():
                 'heure_plage_imputed': 0
             }])
             
-            # --- ML PREDICTION ---
+            # Inférence
             log_pred = model.predict(input_data)[0]
             prix_eco = np.expm1(log_pred)
             
@@ -137,45 +144,65 @@ def main():
             p_confort = round_fcfa(prix_eco * RATIO_CONFORT)
             p_confort_plus = round_fcfa(prix_eco * RATIO_CONFORT_PLUS)
             
-            # --- RESULTATS ---
-            st.subheader("💡 Estimations Tarifaires")
-            col1, col2, col3 = st.columns(3)
-            col1.metric("🌱 Yango Éco", f"{p_eco} FCFA", f"{distance_km:.1f} km")
-            col2.metric("🛋️ Yango Confort", f"{p_confort} FCFA", f"{duree_min:.0f} min")
-            col3.metric("✨ Yango Confort+", f"{p_confort_plus} FCFA", dispo_str.split()[0])
+            # --- AFFICHAGE RESULTATS ---
+            st.markdown("<h3 style='color: #111827; margin-bottom: 20px;'>Résultats de l'Inférence (XGBoost)</h3>", unsafe_allow_html=True)
             
-            # --- MAP FOLIUM ---
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric(label="Catégorie Éco", value=f"{p_eco} FCFA", delta="Formule de base", delta_color="off")
+            with col2:
+                st.metric(label="Catégorie Confort", value=f"{p_confort} FCFA", delta=f"+{int((RATIO_CONFORT-1)*100)}%", delta_color="normal")
+            with col3:
+                st.metric(label="Catégorie Confort+", value=f"{p_confort_plus} FCFA", delta=f"+{int((RATIO_CONFORT_PLUS-1)*100)}%", delta_color="normal")
+            
             st.markdown("---")
-            st.subheader(f"🗺️ Navigation OSRM : {depart_input} ➔ {arrivee_input}")
+            
+            # --- CARTE TOPOLOGIQUE ---
+            st.markdown(f"<h3 style='color: #111827;'>Analyse Géospatiale OSRM</h3>", unsafe_allow_html=True)
+            st.markdown(f"<p style='color: #6B7280;'>Visualisation du trajet optimal entre <b>{depart_input}</b> et <b>{arrivee_input}</b>.</p>", unsafe_allow_html=True)
             
             base_coords = [4.0511, 9.7679] if ville == "Douala" else [3.8480, 11.5021]
-            m = folium.Map(location=base_coords, zoom_start=13, tiles="Cartodb Positron")
+            m = folium.Map(location=base_coords, zoom_start=13, tiles="CartoDB positron")
             
             bounds = []
             if coord_depart:
-                folium.Marker(coord_depart, popup=f"Départ: {depart_input}", icon=folium.Icon(color="green")).add_to(m)
+                # Marqueur Point A (Dark blue)
+                folium.CircleMarker(
+                    location=coord_depart,
+                    radius=7,
+                    popup=f"Origine : {depart_input}",
+                    color="#1E3A8A",
+                    fill=True,
+                    fill_color="#1E3A8A"
+                ).add_to(m)
                 bounds.append(coord_depart)
+                
             if coord_arrivee:
-                folium.Marker(coord_arrivee, popup=f"Arrivée: {arrivee_input}", icon=folium.Icon(color="red")).add_to(m)
+                # Marqueur Point B (Red)
+                folium.CircleMarker(
+                    location=coord_arrivee,
+                    radius=7,
+                    popup=f"Destination : {arrivee_input}",
+                    color="#DC2626",
+                    fill=True,
+                    fill_color="#DC2626"
+                ).add_to(m)
                 bounds.append(coord_arrivee)
             
-            # Draw real road polyline if OSRM gave it
             if route_coords:
-                # route_coords is [lon, lat], folium needs [lat, lon]
                 folium_coords = [[lat, lon] for lon, lat in route_coords]
-                folium.PolyLine(folium_coords, color="blue", weight=4, opacity=0.8).add_to(m)
+                folium.PolyLine(folium_coords, color="#4F46E5", weight=4, opacity=0.8).add_to(m)
                 m.fit_bounds(bounds)
             elif len(bounds) == 2:
-                # Fallback straight line
-                folium.PolyLine(bounds, color="gray", weight=2, dash_array="5, 5").add_to(m)
+                folium.PolyLine(bounds, color="#9CA3AF", weight=2, dash_array="5, 5").add_to(m)
                 m.fit_bounds(bounds)
                 
-            st_folium(m, width=900, height=450)
+            st_folium(m, width=1000, height=450, returned_objects=[])
             
     elif depart_input == arrivee_input and depart_input != "":
-        st.error("Le point de départ et d'arrivée doivent être différents.")
+        st.error("Règle métier ignorée : L'origine et la destination ne peuvent être identiques.")
     else:
-        st.info("👈 Veuillez d'abord choisir un point de départ et un point d'arrivée valides à gauche.")
+        st.markdown("<br><p style='color: #6B7280; font-style: italic;'>Veuillez paramétrer l'origine et la destination dans le panneau interactif à gauche pour initialiser l'algorithme.</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
