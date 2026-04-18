@@ -245,6 +245,37 @@ def main():
 
             st.markdown("<div class='section-title'>Trace du Trajet</div>", unsafe_allow_html=True)
             m = folium.Map(location=[4.0511, 9.7679] if ville == "Douala" else [3.8480, 11.5021], zoom_start=13, tiles="CartoDB positron")
+            
+            # --- AJOUT DES POINTS D'INTERET (REPERES URBAINS) ---
+            points_interet = {
+                "Douala": [
+                    {"name": "Ndokoti", "coord": [4.0494, 9.7494]},
+                    {"name": "Rond-point Deido", "coord": [4.0624, 9.7041]},
+                    {"name": "Bonanjo City Hall", "coord": [4.0435, 9.6888]},
+                    {"name": "Akwa Palace", "coord": [4.0503, 9.7011]},
+                    {"name": "Bonamoussadi", "coord": [4.0841, 9.7441]}
+                ],
+                "Yaounde": [
+                    {"name": "Poste Centrale", "coord": [3.8647, 11.5199]},
+                    {"name": "Boulevard du 20 Mai", "coord": [3.8624, 11.5165]},
+                    {"name": "Carrefour Bastos", "coord": [3.9015, 11.5135]},
+                    {"name": "Mokolo Market", "coord": [3.8694, 11.5034]},
+                    {"name": "Universite de Ngoa-Ekelle", "coord": [3.8502, 11.5115]}
+                ]
+            }
+
+            for pt in points_interet.get(ville, []):
+                folium.CircleMarker(
+                    location=pt["coord"],
+                    radius=4,
+                    popup=pt["name"],
+                    tooltip=f"Lieu-dit : {pt['name']}",
+                    color="#4F46E5",
+                    fill=True,
+                    fill_color="#4F46E5",
+                    opacity=0.4
+                ).add_to(m)
+
             if c_dep: 
                 folium.Marker(
                     location=c_dep, 
