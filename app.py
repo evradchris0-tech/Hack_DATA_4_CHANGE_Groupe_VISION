@@ -9,23 +9,113 @@ import requests
 
 # === CONFIGURATION GLOBALE ===
 st.set_page_config(
-    page_title="SossoTrajet | Simulation Tarifaire",
+    page_title="SossoTrajet | Analytics",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
+# === INJECTION CSS CUSTOM (UI/UX) ===
+st.markdown("""
+<style>
+    /* Import police professionnelle (Inter) */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    html, body, [class*="css"]  {
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Style des Cartes "KPI / Metrics" */
+    div[data-testid="metric-container"] {
+        background-color: #ffffff;
+        border: 1px solid #e5e7eb;
+        padding: 5% 5% 5% 5%;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        text-align: center;
+        transition: transform 0.2s ease-in-out;
+    }
+    div[data-testid="metric-container"]:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    div[data-testid="metric-container"] label {
+        color: #6B7280 !important;
+        font-weight: 600 !important;
+        font-size: 1.1rem !important;
+        margin-bottom: 8px !important;
+    }
+    div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
+        color: #1E3A8A !important;
+        font-weight: 800 !important;
+        font-size: 2.2rem !important;
+    }
+    div[data-testid="metric-container"] div[data-testid="stMetricDelta"] {
+        font-size: 0.9rem !important;
+    }
+
+    /* Style du Bouton Principal */
+    .stButton>button {
+        background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+        color: #ffffff !important;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);
+        width: 100%;
+        margin-top: 15px;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.5);
+    }
+
+    /* Style des headers Custom */
+    .dashboard-title {
+        color: #111827;
+        font-weight: 800;
+        font-size: 2.5rem;
+        margin-bottom: -15px;
+        margin-top: -30px;
+    }
+    .dashboard-subtitle {
+        color: #6B7280;
+        font-size: 1.1rem;
+        font-weight: 400;
+        margin-bottom: 30px;
+    }
+    .section-title {
+        color: #1E3A8A;
+        font-weight: 700;
+        font-size: 1.5rem;
+        border-bottom: 2px solid #E5E7EB;
+        padding-bottom: 10px;
+        margin-top: 30px;
+        margin-bottom: 20px;
+    }
+    
+    /* Conteneur esthétique des inputs sidebar */
+    .css-1544g2n {
+        padding: 3rem 1.5rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # === CACHE ET MODELES ===
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_data():
     return pd.read_csv('SossoTrajet_Clean.csv')
 
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def get_model(_df=None):
     model = XGBRegressor()
     model.load_model("sossoTrajet.json")
     return model
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def geocode_location(location_name, city):
     try:
         geolocator = Nominatim(user_agent="sossotrajet_app")
@@ -36,7 +126,7 @@ def geocode_location(location_name, city):
     except:
         return None
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def get_osrm_route(lat1, lon1, lat2, lon2):
     try:
         url = f"http://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}?overview=full&geometries=geojson"
@@ -52,10 +142,9 @@ def get_osrm_route(lat1, lon1, lat2, lon2):
     return None, None, None
 
 def main():
-    # === HEADER ===
-    st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>SossoTrajet : Inférence Tarifaire</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #6B7280; font-size: 1.1rem;'>Plateforme analytique de prédiction des tarifs VTC basée sur l'algorithme XGBoost et la cartographie OSRM.</p>", unsafe_allow_html=True)
-    st.markdown("---")
+    # === HEADER PRINCIPAL ===
+    st.markdown("<div class='dashboard-title'>SossoTrajet Analytics</div>", unsafe_allow_html=True)
+    st.markdown("<div class='dashboard-subtitle'>Moteur de tarification VTC optimisé par XGBoost & Routing Géospatial Automatique</div>", unsafe_allow_html=True)
     
     df = load_data()
     model = get_model(df)
@@ -63,59 +152,64 @@ def main():
     RATIO_CONFORT = 1.30
     RATIO_CONFORT_PLUS = 1.727
     
-    # === SIDEBAR ===
-    st.sidebar.markdown("<h3 style='color: #1E3A8A;'>Paramètres Géospatiaux</h3>", unsafe_allow_html=True)
-    ville = st.sidebar.selectbox("Zone métropolitaine", ["Douala", "Yaounde"])
-    
-    df_ville = df[df['ville'] == ville]
-    lieux = sorted(list(set(df_ville['depart'].dropna().unique()) | set(df_ville['arrivee'].dropna().unique())))
-    
-    depart_input = st.sidebar.selectbox("Origine du trajet", [""] + lieux)
-    arrivee_input = st.sidebar.selectbox("Destination du trajet", [""] + lieux)
-    
-    st.sidebar.markdown("<br><h3 style='color: #1E3A8A;'>Contexte Temporel & Trafic</h3>", unsafe_allow_html=True)
-    heure_num = st.sidebar.slider("Heure estimée de départ (0h-23h)", 0, 23, 14)
-    
-    dispo_map = {"Fluide (Niveau 0)": 0, "Normal (Niveau 1)": 1, "Dense (Niveau 2)": 2, "Bouchons (Niveau 3)": 3}
-    dispo_str = st.sidebar.selectbox("Indice de Congestion", list(dispo_map.keys()))
-    dispo_ordinal = dispo_map[dispo_str]
-    
-    # === LOGIQUE PRINCIPALE ===
+    # === SIDEBAR (PANNEAU DE CONTROLE) ===
+    with st.sidebar:
+        st.markdown("<div style='text-align:center;'><h2 style='color:#111827;'>Panneau de Contrôle</h2><p style='color:#6B7280; font-size:14px;'>Configuration de l'Inférence</p></div>", unsafe_allow_html=True)
+        st.markdown("<hr style='margin-top:0px; margin-bottom:20px;'>", unsafe_allow_html=True)
+        
+        ville = st.selectbox("Zone Métropolitaine", ["Douala", "Yaounde"])
+        
+        df_ville = df[df['ville'] == ville]
+        lieux = sorted(list(set(df_ville['depart'].dropna().unique()) | set(df_ville['arrivee'].dropna().unique())))
+        
+        depart_input = st.selectbox("Origine du trajet", [""] + lieux)
+        arrivee_input = st.selectbox("Destination du trajet", [""] + lieux)
+        
+        st.markdown("<hr style='margin-top:20px; margin-bottom:20px;'>", unsafe_allow_html=True)
+        
+        heure_num = st.slider("Heure de Modélisation (0h-23h)", 0, 23, 14, help="Saisissez l'heure prévue du départ pour prendre en compte le trafic historique.")
+        
+        dispo_map = {"Fluide (Niv. 0)": 0, "Normal (Niv. 1)": 1, "Dense (Niv. 2)": 2, "Critique (Niv. 3)": 3}
+        dispo_str = st.selectbox("Indice de Congestion", list(dispo_map.keys()))
+        dispo_ordinal = dispo_map[dispo_str]
+        
+        # Placeholder pour contenir le bouton qui sera activé au clic
+        execute_btn = False
+
+    # === LOGIQUE & AFFICHAGE CENTRAL ===
     if depart_input and arrivee_input and depart_input != arrivee_input:
         
-        coord_depart = geocode_location(depart_input, ville)
-        coord_arrivee = geocode_location(arrivee_input, ville)
-        
-        distance_km = None
-        duree_min = None
-        route_coords = None
-        
-        if coord_depart and coord_arrivee:
-            distance_km, duree_min, route_coords = get_osrm_route(
-                coord_depart[0], coord_depart[1], 
-                coord_arrivee[0], coord_arrivee[1]
-            )
+        with st.spinner("Calcul topologique de l'itinéraire en cours..."):
+            coord_depart = geocode_location(depart_input, ville)
+            coord_arrivee = geocode_location(arrivee_input, ville)
             
-        if distance_km is None or duree_min is None:
-            # Fallback historique
-            route_stats = df_ville[(df_ville['depart'] == depart_input) & (df_ville['arrivee'] == arrivee_input)]
-            if len(route_stats) > 0:
-                distance_km = route_stats['distance'].median()
-                duree_min = route_stats['duree_estimee'].median()
-                st.info("Données GPS inaccessibles. Utilisation des médianes historiques du dataset.")
-            else:
-                distance_km = 5.0
-                duree_min = 15.0
-                st.warning("Aucune donnée topologique ou historique disponible. Valeurs par défaut appliquées.")
-
-        st.sidebar.markdown("---")
-        st.sidebar.markdown(f"<span style='color:#4B5563'><b>Distance réseau :</b> {distance_km:.2f} km</span>", unsafe_allow_html=True)
-        st.sidebar.markdown(f"<span style='color:#4B5563'><b>Durée estimée :</b> {duree_min:.0f} min</span>", unsafe_allow_html=True)
-        st.sidebar.markdown("<br>", unsafe_allow_html=True)
-
-        if st.sidebar.button("Exécuter la prédiction globale", use_container_width=True):
+            distance_km = None
+            duree_min = None
+            route_coords = None
             
-            # Feature Engineering
+            if coord_depart and coord_arrivee:
+                distance_km, duree_min, route_coords = get_osrm_route(
+                    coord_depart[0], coord_depart[1], 
+                    coord_arrivee[0], coord_arrivee[1]
+                )
+                
+            if distance_km is None or duree_min is None:
+                route_stats = df_ville[(df_ville['depart'] == depart_input) & (df_ville['arrivee'] == arrivee_input)]
+                if len(route_stats) > 0:
+                    distance_km = route_stats['distance'].median()
+                    duree_min = route_stats['duree_estimee'].median()
+                else:
+                    distance_km = 5.0
+                    duree_min = 15.0
+
+        # Affichage Infos Techniques dans la barre sous les inputs
+        st.sidebar.markdown(f"<div style='background-color:#F3F4F6; padding:15px; border-radius:8px; margin-top:20px;'>"
+                            f"<p style='margin:0; color:#4B5563; font-size:14px;'>Distance Routière : <b>{distance_km:.2f} km</b></p>"
+                            f"<p style='margin:0; color:#4B5563; font-size:14px; margin-top:5px;'>Durée Estimée : <b>{duree_min:.0f} min</b></p></div>", unsafe_allow_html=True)
+
+        if st.sidebar.button("Exécuter la Modélisation ML"):
+            
+            # --- FEATURE ENGINEERING ---
             is_pointe = 1 if heure_num in [7, 8, 9, 17, 18, 19] else 0
             is_nuit = 1 if heure_num >= 21 or heure_num <= 5 else 0
             ville_encoded = 1 if ville == "Yaounde" else 0
@@ -133,7 +227,7 @@ def main():
                 'heure_plage_imputed': 0
             }])
             
-            # Inférence
+            # --- INFERENCE XGBOOST ---
             log_pred = model.predict(input_data)[0]
             prix_eco = np.expm1(log_pred)
             
@@ -144,65 +238,57 @@ def main():
             p_confort = round_fcfa(prix_eco * RATIO_CONFORT)
             p_confort_plus = round_fcfa(prix_eco * RATIO_CONFORT_PLUS)
             
-            # --- AFFICHAGE RESULTATS ---
-            st.markdown("<h3 style='color: #111827; margin-bottom: 20px;'>Résultats de l'Inférence (XGBoost)</h3>", unsafe_allow_html=True)
+            # --- LAYOUT DASHBOARD: RESULTATS ---
+            st.markdown("<div class='section-title'>Outputs Financiers (Prédictions XGBoost)</div>", unsafe_allow_html=True)
             
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric(label="Catégorie Éco", value=f"{p_eco} FCFA", delta="Formule de base", delta_color="off")
+                st.metric(label="Gamme Éco", value=f"{p_eco} XAF", delta="Base Calculation", delta_color="off")
             with col2:
-                st.metric(label="Catégorie Confort", value=f"{p_confort} FCFA", delta=f"+{int((RATIO_CONFORT-1)*100)}%", delta_color="normal")
+                st.metric(label="Gamme Confort", value=f"{p_confort} XAF", delta=f"+{int((RATIO_CONFORT-1)*100)}% (Multiplicateur)", delta_color="normal")
             with col3:
-                st.metric(label="Catégorie Confort+", value=f"{p_confort_plus} FCFA", delta=f"+{int((RATIO_CONFORT_PLUS-1)*100)}%", delta_color="normal")
+                st.metric(label="Gamme Confort+", value=f"{p_confort_plus} XAF", delta=f"+{int((RATIO_CONFORT_PLUS-1)*100)}% (Multiplicateur)", delta_color="normal")
             
-            st.markdown("---")
+            # --- LAYOUT DASHBOARD: CARTE ---
+            st.markdown("<div class='section-title'>Rendu Topologique du Tracé (OSRM)</div>", unsafe_allow_html=True)
             
-            # --- CARTE TOPOLOGIQUE ---
-            st.markdown(f"<h3 style='color: #111827;'>Analyse Géospatiale OSRM</h3>", unsafe_allow_html=True)
-            st.markdown(f"<p style='color: #6B7280;'>Visualisation du trajet optimal entre <b>{depart_input}</b> et <b>{arrivee_input}</b>.</p>", unsafe_allow_html=True)
-            
+            # Application de bordures arroundies et ombre sur la carte (via un conteneur HTML fictif non possible en iframe, mais Streamlit gère bien nativement).
             base_coords = [4.0511, 9.7679] if ville == "Douala" else [3.8480, 11.5021]
-            m = folium.Map(location=base_coords, zoom_start=13, tiles="CartoDB positron")
+            m = folium.Map(location=base_coords, zoom_start=13, tiles="CartoDB Positron")
             
             bounds = []
             if coord_depart:
-                # Marqueur Point A (Dark blue)
                 folium.CircleMarker(
-                    location=coord_depart,
-                    radius=7,
-                    popup=f"Origine : {depart_input}",
-                    color="#1E3A8A",
-                    fill=True,
-                    fill_color="#1E3A8A"
+                    location=coord_depart, radius=8, tooltip=f"Départ : {depart_input}",
+                    color="#4F46E5", fill=True, fill_color="#4F46E5", fill_opacity=1
                 ).add_to(m)
                 bounds.append(coord_depart)
                 
             if coord_arrivee:
-                # Marqueur Point B (Red)
                 folium.CircleMarker(
-                    location=coord_arrivee,
-                    radius=7,
-                    popup=f"Destination : {arrivee_input}",
-                    color="#DC2626",
-                    fill=True,
-                    fill_color="#DC2626"
+                    location=coord_arrivee, radius=8, tooltip=f"Arrivée : {arrivee_input}",
+                    color="#EF4444", fill=True, fill_color="#EF4444", fill_opacity=1
                 ).add_to(m)
                 bounds.append(coord_arrivee)
             
             if route_coords:
                 folium_coords = [[lat, lon] for lon, lat in route_coords]
-                folium.PolyLine(folium_coords, color="#4F46E5", weight=4, opacity=0.8).add_to(m)
+                folium.PolyLine(folium_coords, color="#3B82F6", weight=5, opacity=0.9).add_to(m)
                 m.fit_bounds(bounds)
             elif len(bounds) == 2:
                 folium.PolyLine(bounds, color="#9CA3AF", weight=2, dash_array="5, 5").add_to(m)
                 m.fit_bounds(bounds)
                 
-            st_folium(m, width=1000, height=450, returned_objects=[])
+            st_folium(m, width=1200, height=500, returned_objects=[])
             
     elif depart_input == arrivee_input and depart_input != "":
-        st.error("Règle métier ignorée : L'origine et la destination ne peuvent être identiques.")
+        st.error("Erreur d'intégrité : L'origine et la destination doivent impérativement différer pour l'inférence.")
     else:
-        st.markdown("<br><p style='color: #6B7280; font-style: italic;'>Veuillez paramétrer l'origine et la destination dans le panneau interactif à gauche pour initialiser l'algorithme.</p>", unsafe_allow_html=True)
+        # Message par defaut pour inciter l'utilisateur
+        st.markdown("<div style='text-align: center; margin-top: 10vh;'>"
+                    "<img src='https://cdn-icons-png.flaticon.com/512/854/854878.png' height='80' style='opacity: 0.5;'/>"
+                    "<h3 style='color: #6B7280; font-weight: 500;'>Sélectionnez des points géospatiaux dans le panneau <br>latéral pour débuter la prédiction tarifaire.</h3>"
+                    "</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
