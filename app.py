@@ -123,36 +123,25 @@ def main():
     RATIO_CONFORT, RATIO_PLUS = 1.30, 1.727
 
     with st.sidebar:
-        st.markdown("<h2 style='color:#4F46E5; text-align:center;'>CONTROLE</h2>", unsafe_allow_html=True)
-        ville = st.selectbox("Ville cible", ["Douala", "Yaounde"])
+        st.markdown("<h2 style='color:#4F46E5; text-align:center;'>REGLAGES ITINERAIRE</h2>", unsafe_allow_html=True)
+        ville = st.selectbox("Zone métropolitaine", ["Douala", "Yaounde"], help="Selectionnez la ville pour charger les quartiers correspondants.")
+        
         df_v = df[df['ville'] == ville]
         lieux = sorted(list(set(df_v['depart'].dropna().unique()) | set(df_v['arrivee'].dropna().unique())))
         
-        st.markdown("**Recherche rapide**")
-        search_query = st.text_input("Saisir un nom de quartier", placeholder="Ex: Akwa, Bastos...")
+        st.markdown("**Localisation dynamique**")
+        dep = st.selectbox("Rechercher le point de depart", options=["Choisir un quartier..."] + lieux, index=0)
+        arr = st.selectbox("Rechercher le point d'arrivee", options=["Choisir un quartier..."] + lieux, index=0)
         
-        # Logique de recherche simple
-        dep_idx, arr_idx = 0, 0
-        if search_query:
-            # On cherche le match le plus proche
-            matches = [l for l in lieux if search_query.lower() in l.lower()]
-            if matches:
-                st.sidebar.success(f"Resultat trouve : {matches[0]}")
-                # On peut pre-selectionner si besoin, mais ici on laisse l'utilisateur choisir dans la liste reduite
-                lieux_filtres = matches + [l for l in lieux if l not in matches]
-            else:
-                st.sidebar.error("Aucun quartier correspondant.")
-                lieux_filtres = lieux
-        else:
-            lieux_filtres = lieux
-
-        dep = st.selectbox("Point de depart", [""] + lieux_filtres)
-        arr = st.selectbox("Point d'arrivee", [""] + lieux_filtres)
+        # Securite pour eviter "Choisir un quartier..." dans le modele
+        if dep == "Choisir un quartier...": dep = ""
+        if arr == "Choisir un quartier...": arr = ""
         
         st.markdown("<hr>", unsafe_allow_html=True)
         
         import datetime
         now = datetime.datetime.now()
+        st.markdown(f"<div style='font-size:0.8rem; color:#64748b;'>Horodatage : {now.strftime('%H:%M')}</div>", unsafe_allow_html=True)
         
         # Affichage de la date réelle pour le contexte
         st.markdown(f"<div style='font-size:0.85rem; color:#64748b;'>Simulation du : {now.strftime('%d/%m/%Y')}</div>", unsafe_allow_html=True)
@@ -254,10 +243,22 @@ def main():
                 m2.metric("Yango Confort", f"{p_c} XAF")
                 m3.metric("Yango Confort+", f"{p_p} XAF")
 
-            st.markdown("<div class='section-title'>Visualisation Routiere</div>", unsafe_allow_html=True)
+            st.markdown("<div class='section-title'>Trace du Trajet</div>", unsafe_allow_html=True)
             m = folium.Map(location=[4.0511, 9.7679] if ville == "Douala" else [3.8480, 11.5021], zoom_start=13, tiles="CartoDB positron")
-            if c_dep: folium.Marker(c_dep, icon=folium.Icon(color='green')).add_to(m)
-            if c_arr: folium.Marker(c_arr, icon=folium.Icon(color='red')).add_to(m)
+            if c_dep: 
+                folium.Marker(
+                    location=c_dep, 
+                    popup=folium.Popup(f"<b>Depart</b><br>{dep}<br>{c_dep}", max_width=300),
+                    tooltip=f"Origine : {dep}",
+                    icon=folium.Icon(color='green', icon='play')
+                ).add_to(m)
+            if c_arr: 
+                folium.Marker(
+                    location=c_arr, 
+                    popup=folium.Popup(f"<b>Arrivee</b><br>{arr}<br>{c_arr}", max_width=300),
+                    tooltip=f"Destination : {arr}",
+                    icon=folium.Icon(color='red', icon='stop')
+                ).add_to(m)
             if route:
                 from folium.plugins import AntPath
                 AntPath(locations=[[lat, lon] for lon, lat in route], color="#FF0000", weight=8, delay=600).add_to(m)
